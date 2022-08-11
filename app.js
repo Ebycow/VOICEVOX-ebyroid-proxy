@@ -109,11 +109,11 @@ const server = http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     if(request.method === "GET" && requestUrl.pathname === "/api/v1/audiostream") {
 
-        const text = requestUrl.searchParams.get('text');
+        const name = requestUrl.searchParams.get('name');
 
         // 要例外処理
 
-        const synthesisConfig = { speaker : 0, enableInterrogativeUpspeak  : false };
+        const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
         let audioQuery = await getAudioQuery(text, synthesisConfig);
         audioQuery = transformAudioQuery(audioQuery);
 
