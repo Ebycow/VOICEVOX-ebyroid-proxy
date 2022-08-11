@@ -1,6 +1,8 @@
 import assert from 'assert'
 import fetch from 'node-fetch';
 
+import fs from "fs"
+
 const VOICEVOX_API_PATH = "http://localhost:50021";
 
 /**
@@ -56,11 +58,13 @@ function transformAudioQuery(audioQuery) {
 }
 
 /**
- * VoiceVoxのAudioQuery設定を変換
+ * 
  *
  * @param {AudioQuery} audioQuery
  * @param {number} speaker
  * @param {SynthesisConfig} config
+ * @returns {Buffer} 
+ * 
  */
 async function getSynthesisAudio(audio_query, config) {
     assert(typeof audio_query === 'object');
@@ -79,16 +83,19 @@ async function getSynthesisAudio(audio_query, config) {
         },
         body : JSON.stringify(audioQuery)
     });
-    const body = await request.text()
+    
+    const body = new Buffer.from(await request.arrayBuffer())
+
     return body;
 
 }
 
 const synthesisConfig = { speaker : 3, enableInterrogativeUpspeak  : false };
-let audioQuery = await getAudioQuery("こんにちは", synthesisConfig);
+let audioQuery = await getAudioQuery("よろしくおねがいします", synthesisConfig);
 audioQuery = transformAudioQuery(audioQuery);
 console.log(audioQuery)
 
 const synthesis = await getSynthesisAudio(audioQuery, synthesisConfig);
-console.log(synthesis);
+console.log(synthesis.length);
 
+fs.writeFile("./text.wav", synthesis, () => {})
