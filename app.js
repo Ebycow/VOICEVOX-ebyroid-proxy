@@ -1,6 +1,7 @@
 import assert from 'assert';
 import fetch from 'node-fetch';
 import http from 'http';
+import r2h from './util.js';
 
 import fs from "fs"
 
@@ -109,6 +110,7 @@ const server = http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     if(request.method === "GET" && requestUrl.pathname === "/api/v1/audiostream") {
 
+        const text = r2h(requestUrl.searchParams.get('text'));
         const name = requestUrl.searchParams.get('name');
 
         // 要例外処理
