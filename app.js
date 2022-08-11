@@ -2,7 +2,6 @@ import assert from 'assert';
 import log4js from "log4js";
 import fetch from 'node-fetch';
 import http from 'http';
-import r2h from './util.js';
 
 log4js.configure('./log4js-config.json');
 const logger = log4js.getLogger();
@@ -112,23 +111,23 @@ const server = http.createServer(async (request, response) => {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     if(request.method === "GET" && requestUrl.pathname === "/api/v1/audiostream") {
 
-        const text = r2h(requestUrl.searchParams.get('text'));
+        const text = requestUrl.searchParams.get('text');
         const name = requestUrl.searchParams.get('name');
 
         if(name) {
-        // 要例外処理
-        const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
-        let audioQuery = await getAudioQuery(text, synthesisConfig);
-        audioQuery = transformAudioQuery(audioQuery);
-
+            // 要例外処理
+            const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
+            let audioQuery = await getAudioQuery(text, synthesisConfig);
+            audioQuery = transformAudioQuery(audioQuery);
+    
             const synthesisBuffer = await getSynthesisAudio(audioQuery, synthesisConfig);
             logger.trace("requested-buffer-length:", synthesisBuffer.length);
-
+    
             const header = {
-            'Content-Type': 'application/octet-stream',
-            'Ebyroid-PCM-Sample-Rate' : VOICEVOX_OUTPUT_SAMPLING_RATE,
-            'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
-            'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
+                'Content-Type': 'application/octet-stream',
+                'Ebyroid-PCM-Sample-Rate' : VOICEVOX_OUTPUT_SAMPLING_RATE,
+                'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
+                'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
             };
     
             response.writeHead(200, header);
@@ -163,7 +162,7 @@ const server = http.createServer(async (request, response) => {
                 response.end('error');
 
             }
-        
+
         }
 
     } else {
