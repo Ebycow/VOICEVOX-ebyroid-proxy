@@ -1,9 +1,11 @@
 import assert from 'assert';
+import log4js from "log4js";
 import fetch from 'node-fetch';
 import http from 'http';
 import r2h from './util.js';
 
-import fs from "fs"
+log4js.configure('./log4js-config.json');
+const logger = log4js.getLogger();
 
 const VOICEVOX_API_PATH = "http://localhost:50021";
 const VOICEVOX_OUTPUT_SAMPLING_RATE = 44100;
@@ -120,7 +122,7 @@ const server = http.createServer(async (request, response) => {
         audioQuery = transformAudioQuery(audioQuery);
 
         const synthesis = await getSynthesisAudio(audioQuery, synthesisConfig);
-        console.log("requested-buffer-length:", synthesis.length);
+        logger.trace("requested-buffer-length:", synthesis.length);
 
         response.writeHead(200, {
             'Content-Type': 'application/octet-stream',
@@ -140,5 +142,5 @@ const server = http.createServer(async (request, response) => {
 });
 
 server.listen(4090, "0.0.0.0", () => {
-    console.log("server listen on :4090");
+    logger.trace(`VOICEBOX-EBYROID-PROXY: Server listen on ${ server.address().port }`);
 })
