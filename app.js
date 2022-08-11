@@ -87,7 +87,16 @@ async function getSynthesisAudio(audioQuery, config) {
         body : JSON.stringify(audioQuery)
     });
     
-    const body = new Buffer.from(await request.arrayBuffer())
+    const arrayBuffer = await request.arrayBuffer();
+    const buffer = new Buffer.from(arrayBuffer);
+
+    // wavヘッダーを削除
+    for (let i = 0; i <= 44; i++) {
+        buffer[i] =  0 
+        
+    }
+
+    const body = buffer;
 
     return body;
 
@@ -107,7 +116,7 @@ const server = http.createServer(async (request, response) => {
         audioQuery = transformAudioQuery(audioQuery);
 
         const synthesis = await getSynthesisAudio(audioQuery, synthesisConfig);
-        console.log("buffer-length:", synthesis.length);
+        console.log("requested-buffer-length:", synthesis.length);
 
         response.writeHead(200, {
             'Content-Type': 'application/octet-stream',
@@ -115,7 +124,6 @@ const server = http.createServer(async (request, response) => {
             'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
             'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
         });
-        
         
         response.end(synthesis);
 
