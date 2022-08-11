@@ -12,6 +12,8 @@ const VOICEVOX_OUTPUT_SAMPLING_RATE = 44100;
 const VOICEVOX_OUTPUT_BIT_DEPTH = 16;
 const VOICEVOX_VOLUME = 2;
 
+const EBYROID_API_PATH = "http://localhost:4090"
+
 /**
  * VoiceVoxのAudioQuery
  * @typedef {{
@@ -101,9 +103,7 @@ async function getSynthesisAudio(audioQuery, config) {
         
     }
 
-    const body = buffer;
-
-    return body;
+    return buffer;
 
 }
 
@@ -115,23 +115,56 @@ const server = http.createServer(async (request, response) => {
         const text = r2h(requestUrl.searchParams.get('text'));
         const name = requestUrl.searchParams.get('name');
 
+        if(name) {
         // 要例外処理
-
         const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
         let audioQuery = await getAudioQuery(text, synthesisConfig);
         audioQuery = transformAudioQuery(audioQuery);
 
-        const synthesis = await getSynthesisAudio(audioQuery, synthesisConfig);
-        logger.trace("requested-buffer-length:", synthesis.length);
+            const synthesisBuffer = await getSynthesisAudio(audioQuery, synthesisConfig);
+            logger.trace("requested-buffer-length:", synthesisBuffer.length);
 
-        response.writeHead(200, {
+            const header = {
             'Content-Type': 'application/octet-stream',
             'Ebyroid-PCM-Sample-Rate' : VOICEVOX_OUTPUT_SAMPLING_RATE,
             'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
             'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
-        });
+            };
+    
+            response.writeHead(200, header);
+            response.end(synthesisBuffer);
+
+        } else { // default
+
+            console.log("default");
+            const url = new URL(`${ EBYROID_API_PATH }/api/v1/audiostream`);
+            url.searchParams.append('text', text);
+            // url.searchParams.append('name', name ); 後でこれがいる
+
         
-        response.end(synthesis);
+            const req = await fetch(url.toString(), { method : "GET" });
+            
+            const arrayBuffer = await req.arrayBuffer();
+            const buffer = new Buffer.from(arrayBuffer);
+            
+            if(req.status == 200){
+                const header = {
+                    'Content-Type': 'application/octet-stream',
+                    'Ebyroid-PCM-Sample-Rate' : 22050,
+                    'Ebyroid-PCM-Bit-Depth' : 16,
+                    'Ebyroid-PCM-Number-Of-Channels' : 1
+                };
+
+                response.writeHead(200, header);
+                response.end(buffer);
+
+            } else {
+                response.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+                response.end('error');
+
+            }
+        
+        }
 
     } else {
         response.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
