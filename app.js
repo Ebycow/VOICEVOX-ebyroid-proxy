@@ -1,9 +1,12 @@
-import assert from 'assert'
+import assert from 'assert';
 import fetch from 'node-fetch';
+import http from 'http';
 
 import fs from "fs"
 
 const VOICEVOX_API_PATH = "http://localhost:50021";
+const VOICEVOX_OUTPUT_SAMPLING_RATE = 44100;
+const VOICEVOX_OUTPUT_BIT_DEPTH = 16;
 
 /**
  * VoiceVoxのAudioQuery
@@ -53,7 +56,7 @@ async function getAudioQuery(text, config){
 function transformAudioQuery(audioQuery) {
     assert(typeof audioQuery === 'object');
 
-    audioQuery.outputSamplingRate = 44100;
+    audioQuery.outputSamplingRate = VOICEVOX_OUTPUT_SAMPLING_RATE;
     return audioQuery;
 }
 
@@ -66,8 +69,8 @@ function transformAudioQuery(audioQuery) {
  * @returns {Buffer} 
  * 
  */
-async function getSynthesisAudio(audio_query, config) {
-    assert(typeof audio_query === 'object');
+async function getSynthesisAudio(audioQuery, config) {
+    assert(typeof audioQuery === 'object');
     assert(typeof config.speaker === 'number');
     assert(typeof config.enableInterrogativeUpspeak === 'boolean');
 
@@ -90,12 +93,40 @@ async function getSynthesisAudio(audio_query, config) {
 
 }
 
-const synthesisConfig = { speaker : 3, enableInterrogativeUpspeak  : false };
-let audioQuery = await getAudioQuery("よろしくおねがいします", synthesisConfig);
-audioQuery = transformAudioQuery(audioQuery);
-console.log(audioQuery)
 
-const synthesis = await getSynthesisAudio(audioQuery, synthesisConfig);
-console.log(synthesis.length);
+const server = http.createServer(async (request, response) => {
+    const requestUrl = new URL(request.url, `http://${request.headers.host}`);
+    if(request.method === "GET" && requestUrl.pathname === "/api/v1/audiostream") {
 
-fs.writeFile("./text.wav", synthesis, () => {})
+        const text = requestUrl.searchParams.get('text');
+
+        // 要例外処理
+
+        const synthesisConfig = { speaker : 0, enableInterrogativeUpspeak  : false };
+        let audioQuery = await getAudioQuery(text, synthesisConfig);
+        audioQuery = transformAudioQuery(audioQuery);
+
+        const synthesis = await getSynthesisAudio(audioQuery, synthesisConfig);
+        console.log("buffer-length:", synthesis.length);
+
+        response.writeHead(200, {
+            'Content-Type': 'application/octet-stream',
+            'Ebyroid-PCM-Sample-Rate' : VOICEVOX_OUTPUT_SAMPLING_RATE,
+            'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
+            'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
+        });
+        
+        
+        response.end(synthesis);
+
+    } else {
+        response.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+        response.end('error');
+
+    }
+ 
+});
+
+server.listen(4090, "0.0.0.0", () => {
+    console.log("server listen on :4090");
+})
