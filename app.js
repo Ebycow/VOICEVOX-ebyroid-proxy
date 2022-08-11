@@ -7,6 +7,7 @@ import fs from "fs"
 const VOICEVOX_API_PATH = "http://localhost:50021";
 const VOICEVOX_OUTPUT_SAMPLING_RATE = 44100;
 const VOICEVOX_OUTPUT_BIT_DEPTH = 16;
+const VOICEVOX_VOLUME = 2;
 
 /**
  * VoiceVoxのAudioQuery
@@ -57,6 +58,7 @@ function transformAudioQuery(audioQuery) {
     assert(typeof audioQuery === 'object');
 
     audioQuery.outputSamplingRate = VOICEVOX_OUTPUT_SAMPLING_RATE;
+    audioQuery.volumeScale = VOICEVOX_VOLUME;
     return audioQuery;
 }
 
