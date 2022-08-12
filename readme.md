@@ -2,3 +2,5 @@
 HTTP proxy to make VOICEVOX compatible with [Ebyroid HTTP protocol](https://github.com/Ebycow/Ebyroid-standard-protocol).  
 *Announcement: In the future this project will integrated some proxy for the TTS-API for Ebyroid protocol*.
 
+## Quote and thanks
+ojosama : https://github.com/jiro4989/ojosama

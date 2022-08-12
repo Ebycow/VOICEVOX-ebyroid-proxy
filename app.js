@@ -2,6 +2,7 @@ import assert from 'assert';
 import log4js from "log4js";
 import fetch from 'node-fetch';
 import http from 'http';
+import getOjoSpeak from "./util/ojosama.js";
 
 log4js.configure('./log4js-config.json');
 const logger = log4js.getLogger();
@@ -11,7 +12,9 @@ const VOICEVOX_OUTPUT_SAMPLING_RATE = 44100;
 const VOICEVOX_OUTPUT_BIT_DEPTH = 16;
 const VOICEVOX_VOLUME = 2;
 
-const EBYROID_API_PATH = "http://localhost:4090"
+
+const OJO_MODE = false
+const NANNARA_MODE = false
 
 /**
  * VoiceVoxのAudioQuery
@@ -106,6 +109,22 @@ async function getSynthesisAudio(audioQuery, config) {
 
 }
 
+async function transformText(text){
+    if(OJO_MODE){
+        text = await getOjoSpeak(text);
+        logger.trace("ojo-transform:", text)
+    }
+
+    if(NANNARA_MODE){
+        text = "なんなら" + text;
+        logger.trace("nannara-transform:", text)
+    }
+
+    logger.trace("transformed-text:", text)
+
+    return text;
+
+}
 
 const server = http.createServer(async (request, response) => {
     logger.trace("request :", decodeURI(request.url));
@@ -114,8 +133,10 @@ const server = http.createServer(async (request, response) => {
     
     if(request.method === "GET" && requestUrl.pathname === "/api/v1/audiostream") {
 
-        const text = requestUrl.searchParams.get('text');
+        let text = requestUrl.searchParams.get('text');
         const name = requestUrl.searchParams.get('name');
+
+        text = await transformText(text)
 
         if(name) {
             // 要例外処理
