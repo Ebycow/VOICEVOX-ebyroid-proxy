@@ -12,6 +12,7 @@ const VOICEVOX_OUTPUT_SAMPLING_RATE = 44100;
 const VOICEVOX_OUTPUT_BIT_DEPTH = 16;
 const VOICEVOX_VOLUME = 2;
 
+const EBYROID_API_PATH = "http://localhost:4090"
 
 const OJO_MODE = false
 const NANNARA_MODE = false
@@ -142,21 +143,33 @@ const server = http.createServer(async (request, response) => {
             // 要例外処理
             logger.trace("route-voicevox:", "name=" , name);
             const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
-            let audioQuery = await getAudioQuery(text, synthesisConfig);
-            audioQuery = transformAudioQuery(audioQuery);
-    
-            const synthesisBuffer = await getSynthesisAudio(audioQuery, synthesisConfig);
-            logger.trace("response-buffer-length:", synthesisBuffer.length);
-    
-            const header = {
-                'Content-Type': 'application/octet-stream',
-                'Ebyroid-PCM-Sample-Rate' : VOICEVOX_OUTPUT_SAMPLING_RATE,
-                'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
-                'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
-            };
-    
-            response.writeHead(200, header);
-            response.end(synthesisBuffer);
+
+            try {
+                let audioQuery = await getAudioQuery(text, synthesisConfig);
+                audioQuery = transformAudioQuery(audioQuery);
+        
+                const synthesisBuffer = await getSynthesisAudio(audioQuery, synthesisConfig);
+                logger.trace("response-buffer-length:", synthesisBuffer.length);
+        
+                const header = {
+                    'Content-Type': 'application/octet-stream',
+                    'Ebyroid-PCM-Sample-Rate' : VOICEVOX_OUTPUT_SAMPLING_RATE,
+                    'Ebyroid-PCM-Bit-Depth' : VOICEVOX_OUTPUT_BIT_DEPTH,
+                    'Ebyroid-PCM-Number-Of-Channels' : audioQuery.outputStereo ? 2 : 1
+                };
+        
+                response.writeHead(200, header);
+                response.end(synthesisBuffer);
+
+            } catch (error) {
+                logger.error(error);
+                response.writeHead(500);
+                response.end("{'error' : 'error'}");
+
+            }
+
+            
+
 
         } else { // default
             logger.trace("route-ebyroid:", "name=" , name);
@@ -164,27 +177,33 @@ const server = http.createServer(async (request, response) => {
             url.searchParams.append('text', text);
             // url.searchParams.append('name', name ); 後でこれがいる
 
-        
-            const req = await fetch(url.toString(), { method : "GET" });
-            
-            const arrayBuffer = await req.arrayBuffer();
-            const buffer = new Buffer.from(arrayBuffer);
-            logger.trace("response-buffer-length:", buffer.length);
-            
-            if(req.status == 200){
-                const header = {
-                    'Content-Type': 'application/octet-stream',
-                    'Ebyroid-PCM-Sample-Rate' : 22050,
-                    'Ebyroid-PCM-Bit-Depth' : 16,
-                    'Ebyroid-PCM-Number-Of-Channels' : 1
-                };
+            try {
+                const req = await fetch(url.toString(), { method : "GET" });
+                
+                const arrayBuffer = await req.arrayBuffer();
+                const buffer = new Buffer.from(arrayBuffer);
+                logger.trace("response-buffer-length:", buffer.length);
 
-                response.writeHead(200, header);
-                response.end(buffer);
+                if(req.status == 200){
+                    const header = {
+                        'Content-Type': 'application/octet-stream',
+                        'Ebyroid-PCM-Sample-Rate' : 22050,
+                        'Ebyroid-PCM-Bit-Depth' : 16,
+                        'Ebyroid-PCM-Number-Of-Channels' : 1
+                    };
 
-            } else {
-                response.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
-                response.end('error');
+                    response.writeHead(200, header);
+                    response.end(buffer);
+
+                } else {
+                    response.writeHead(400, {'Content-Type': 'text/html; charset=utf-8'});
+                    response.end('error');
+
+                }
+            } catch(error) {
+                logger.error(error);
+                response.writeHead(500);
+                response.end("{'error' : 'error'}");
 
             }
 
@@ -198,6 +217,6 @@ const server = http.createServer(async (request, response) => {
  
 });
 
-server.listen(4090, "0.0.0.0", () => {
+server.listen(4091, "0.0.0.0", () => {
     logger.trace(`VOICEBOX-EBYROID-PROXY: Server listen on ${ server.address().port }`);
 })
