@@ -108,7 +108,10 @@ async function getSynthesisAudio(audioQuery, config) {
 
 
 const server = http.createServer(async (request, response) => {
+    logger.trace("request :", decodeURI(request.url));
+
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
+    
     if(request.method === "GET" && requestUrl.pathname === "/api/v1/audiostream") {
 
         const text = requestUrl.searchParams.get('text');
@@ -116,12 +119,13 @@ const server = http.createServer(async (request, response) => {
 
         if(name) {
             // 要例外処理
+            logger.trace("route-voicevox:", "name=" , name);
             const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
             let audioQuery = await getAudioQuery(text, synthesisConfig);
             audioQuery = transformAudioQuery(audioQuery);
     
             const synthesisBuffer = await getSynthesisAudio(audioQuery, synthesisConfig);
-            logger.trace("requested-buffer-length:", synthesisBuffer.length);
+            logger.trace("response-buffer-length:", synthesisBuffer.length);
     
             const header = {
                 'Content-Type': 'application/octet-stream',
@@ -134,8 +138,7 @@ const server = http.createServer(async (request, response) => {
             response.end(synthesisBuffer);
 
         } else { // default
-
-            console.log("default");
+            logger.trace("route-ebyroid:", "name=" , name);
             const url = new URL(`${ EBYROID_API_PATH }/api/v1/audiostream`);
             url.searchParams.append('text', text);
             // url.searchParams.append('name', name ); 後でこれがいる
@@ -145,6 +148,7 @@ const server = http.createServer(async (request, response) => {
             
             const arrayBuffer = await req.arrayBuffer();
             const buffer = new Buffer.from(arrayBuffer);
+            logger.trace("response-buffer-length:", buffer.length);
             
             if(req.status == 200){
                 const header = {
