@@ -3,6 +3,7 @@ import log4js from "log4js";
 import fetch from 'node-fetch';
 import http from 'http';
 import getOjoSpeak from "./util/ojosama.js";
+import translate from "./util/hiragana.js";
 
 log4js.configure('./log4js-config.json');
 const logger = log4js.getLogger();
@@ -60,13 +61,19 @@ async function getAudioQuery(text, config){
  * VoiceVoxのAudioQuery設定を変換
  *
  * @param {AudioQuery} audioQuery
+ * @param {string} name
  * @returns {AudioQuery} 
  */
-function transformAudioQuery(audioQuery) {
+function transformAudioQuery(audioQuery, name) {
     assert(typeof audioQuery === 'object');
 
     audioQuery.outputSamplingRate = VOICEVOX_OUTPUT_SAMPLING_RATE;
     audioQuery.volumeScale = VOICEVOX_VOLUME;
+    if(name.split("/")[1]){
+        
+        audioQuery.speedScale = name.split("/")[1];
+    }
+    
     return audioQuery;
 }
 
@@ -110,7 +117,12 @@ async function getSynthesisAudio(audioQuery, config) {
 
 }
 
-async function transformText(text){
+async function transformText(text, name){
+    if(name){
+        text = translate(text);
+        logger.trace("hiragana-transform:", text)
+    }
+
     if(OJO_MODE){
         text = await getOjoSpeak(text);
         logger.trace("ojo-transform:", text)
@@ -137,16 +149,16 @@ const server = http.createServer(async (request, response) => {
         let text = requestUrl.searchParams.get('text');
         const name = requestUrl.searchParams.get('name');
 
-        text = await transformText(text)
+        text = await transformText(text, name)
 
         if(name) {
             // 要例外処理
             logger.trace("route-voicevox:", "name=" , name);
-            const synthesisConfig = { speaker : name ? Number(name) : 0, enableInterrogativeUpspeak  : true };
+            const synthesisConfig = { speaker : Number(name.split("/")[0]) ? Number(name.split("/")[0]) : 0, enableInterrogativeUpspeak  : true };
 
             try {
                 let audioQuery = await getAudioQuery(text, synthesisConfig);
-                audioQuery = transformAudioQuery(audioQuery);
+                audioQuery = transformAudioQuery(audioQuery, name);
         
                 const synthesisBuffer = await getSynthesisAudio(audioQuery, synthesisConfig);
                 logger.trace("response-buffer-length:", synthesisBuffer.length);

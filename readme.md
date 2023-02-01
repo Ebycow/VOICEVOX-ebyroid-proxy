@@ -4,3 +4,11 @@ HTTP proxy to make VOICEVOX compatible with [Ebyroid HTTP protocol](https://gith
 
 ## Quote and thanks
 ojosama : https://github.com/jiro4989/ojosama
+
+## Copyrights
+katakana dictionary's data is based on alkana.py https://github.com/zomysan/alkana.py (c) 2019 cod
+Alphabetical word - katakana dictionary's data is from bep-eng.dic.
+Bilingual Emacspeak Project (c) 1999-2002 Bilingual Emacspeak Project
+
+## Lisence
+GPLv2
